@@ -46,7 +46,7 @@ class GameScene: SKScene {
     
     func floor() {
         var suelo = SKSpriteNode()
-        let texturaFondo = SKTexture(imageNamed: "city.jpg")
+        let texturaFondo = SKTexture(imageNamed: "floor.png")
         
         suelo.position = CGPoint(x: self.frame.midX, y: -self.frame.height )
         
@@ -63,7 +63,7 @@ class GameScene: SKScene {
     override func didMove(to view: SKView) {
         
         backgroundAnimated()
-        //floor()
+        floor()
         
     }
     
