@@ -14,11 +14,38 @@ class GameScene: SKScene {
     private var label : SKLabelNode?
     private var spinnyNode : SKShapeNode?
     
+    var gameOver = false
+    
+    var labelPuntuacion = SKLabelNode()
+    var puntuacion = 0
+    
+    var rock = SKSpriteNode()
+    var textRock = SKTexture(imageNamed: "rock.png")
+    
+    var cantidadAleatoria = CGFloat()
+    var compensacionTubos = CGFloat()
+    
     var background = SKSpriteNode()
     let texturaFondo = SKTexture(imageNamed: "city.jpg")
     var suelo = SKSpriteNode()
     let texturaSuelo = SKTexture(imageNamed: "floor.png")
     
+    var goku = SKSpriteNode()
+    
+    let textGoku1 = SKTexture(imageNamed: "correr.png")
+    let textGoku2 = SKTexture(imageNamed: "correr2.png")
+    let textGoku3 = SKTexture(imageNamed: "correr3.png")
+    let textGoku4 = SKTexture(imageNamed: "correr4.png")
+    let textGoku5 = SKTexture(imageNamed: "correr5.png")
+    let textGoku6 = SKTexture(imageNamed: "correr6.png")
+    let textGoku7 = SKTexture(imageNamed: "correr7.png")
+    let textGoku8 = SKTexture(imageNamed: "correr8.png")
+    
+    enum tipoNodo: UInt32 {
+        case goku = 1
+        case suelo = 3
+        case object = 2
+    }
     
     func backgroundAnimated(){
         
@@ -55,7 +82,7 @@ class GameScene: SKScene {
             suelo.size.height = background.size.height/3
             suelo.size.width = background.size.width*1.3
             
-            suelo.position = CGPoint(x: texturaSuelo.size().width * i, y:  self.frame.minY + suelo.size.height / 3 )
+            suelo.position = CGPoint(x: texturaSuelo.size().width*i, y:  self.frame.minY + suelo.size.height / 3 )
             
             
             suelo.zPosition = 0
@@ -64,9 +91,11 @@ class GameScene: SKScene {
             
             print(self.frame.height)
             print(self.frame.width)
-            suelo.physicsBody = SKPhysicsBody(rectangleOf: CGSize(width: self.frame.width, height: 1))
+            suelo.physicsBody = SKPhysicsBody(rectangleOf: CGSize(width: self.frame.width*3, height: 1))
             
             suelo.physicsBody!.isDynamic = false
+            
+            suelo.physicsBody!.collisionBitMask = tipoNodo.goku.rawValue
             
             suelo.run(movimientoInfinitoSuelo)
             self.addChild(suelo)
@@ -75,17 +104,99 @@ class GameScene: SKScene {
         }
     }
     
+    func objects() {
+        // Acción para mover los tubos
+        let moverTubos = SKAction.move(by: CGVector(dx: 0, dy: 0), duration: TimeInterval(self.frame.width / 80))
+        
+        // Acción para borrar los tubos cuando desaparecen de la pantalla para no tener infinitos nodos en la aplicación
+        let borrarTubos = SKAction.removeFromParent()
+        
+        
+        // Acción que enlaza las dos acciones (la que pone tubos y la que los borra)
+        let moverBorrarTubos = SKAction.sequence([moverTubos, borrarTubos])
+        
+        // Numero entre 0 y la mitad de alto de la pantalla (para que los tubos aparezcan a alturas diferentes)
+        cantidadAleatoria = CGFloat(arc4random() % UInt32(self.frame.height/2))
+        
+        // Compensación para evitar que a veces salga un único tubo porque el otro está fuera de la pantalla
+        compensacionTubos = cantidadAleatoria - self.frame.height / 4
+        
+
+        rock = SKSpriteNode(texture: textRock)
+        rock.position = CGPoint(x: 0, y: 0)
+        
+        // Le damos cuerpo físico al tubo
+        rock.physicsBody = SKPhysicsBody(rectangleOf: textRock.size())
+        // Para que no caiga
+        rock.physicsBody!.isDynamic = false
+        
+        // Categoría de collision
+        rock.physicsBody!.categoryBitMask = tipoNodo.object.rawValue
+        
+        // con quien colisiona
+        rock.physicsBody!.collisionBitMask = tipoNodo.goku.rawValue
+        
+        // Hace contacto con
+        rock.physicsBody!.contactTestBitMask = tipoNodo.goku.rawValue
+        
+        rock.run(moverBorrarTubos)
+        
+        self.addChild(rock)
+    }
+    
+    func gokuRun() {
+        let animacion = SKAction.animate(with: [textGoku1,textGoku2,textGoku3, textGoku4, textGoku5, textGoku6, textGoku7, textGoku8], timePerFrame: 0.2)
+        
+        let animacionRepetida = SKAction.repeatForever(animacion)
+        goku = SKSpriteNode(texture: textGoku1)
+        goku.position = CGPoint(x: self.frame.midX, y: self.frame.midY)
+        
+        
+        goku.physicsBody = SKPhysicsBody(circleOfRadius: textGoku1.size().height/2)
+        goku.physicsBody?.isDynamic = true
+        
+        goku.physicsBody!.categoryBitMask = tipoNodo.goku.rawValue
+        goku.physicsBody!.categoryBitMask = tipoNodo.suelo.rawValue
+        
+        goku.run(animacionRepetida)
+
+        self.addChild(goku)
+        
+        
+    }
+    
     override func didMove(to view: SKView) {
         
         backgroundAnimated()
         floor()
-        
+        gokuRun()
+        objects()
     }
     
-    
-    
-    
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        
+        
+        if gameOver == false {
+            
+            // Le damos una velocidad a la mosquita para que la velocidad al caer sea constante
+            goku.physicsBody!.velocity = CGVector(dx: 0, dy: 0)
+            
+            // Le aplicamos un impulso a la mosquita para que suba cada vez que pulsemos la pantalla
+            // Y así poder evitar que se caiga para abajo
+            goku.physicsBody!.applyImpulse(CGVector(dx: 0, dy: 30))
+        } else {
+            // si toca la pantalla cuando el juego ha acabado, lo reiniciamos para volver a jugar
+            gameOver = false
+            puntuacion = 0
+            self.speed = 1
+            //Si voy creando nodes a la pantalla y no los elimino se van acumulando
+            self.removeAllChildren()
+            reiniciar()
+        }
+        
+    }
+
+    func reiniciar() {
         
     }
     
