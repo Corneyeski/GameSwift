@@ -22,8 +22,10 @@ class GameScene: SKScene {
     var rock = SKSpriteNode()
     var textRock = SKTexture(imageNamed: "rock.png")
     
+    var timer = Timer()
+    
     var cantidadAleatoria = CGFloat()
-    var compensacionTubos = CGFloat()
+    var compensacionRock = CGFloat()
     
     var background = SKSpriteNode()
     let texturaFondo = SKTexture(imageNamed: "city.jpg")
@@ -104,26 +106,19 @@ class GameScene: SKScene {
         }
     }
     
-    func objects() {
+    @objc func objects() {
         // Acción para mover los tubos
-        let moverTubos = SKAction.move(by: CGVector(dx: 0, dy: 0), duration: TimeInterval(self.frame.width / 80))
+        let moverRock = SKAction.move(by: CGVector(dx: -3 * self.frame.width, dy: 0), duration: TimeInterval(self.frame.width / 80))
         
         // Acción para borrar los tubos cuando desaparecen de la pantalla para no tener infinitos nodos en la aplicación
-        let borrarTubos = SKAction.removeFromParent()
+        let borrarRock = SKAction.removeFromParent()
         
         
         // Acción que enlaza las dos acciones (la que pone tubos y la que los borra)
-        let moverBorrarTubos = SKAction.sequence([moverTubos, borrarTubos])
-        
-        // Numero entre 0 y la mitad de alto de la pantalla (para que los tubos aparezcan a alturas diferentes)
-        cantidadAleatoria = CGFloat(arc4random() % UInt32(self.frame.height/2))
-        
-        // Compensación para evitar que a veces salga un único tubo porque el otro está fuera de la pantalla
-        compensacionTubos = cantidadAleatoria - self.frame.height / 4
-        
+        let moverBorrarRock = SKAction.sequence([moverRock, borrarRock])
 
         rock = SKSpriteNode(texture: textRock)
-        rock.position = CGPoint(x: 0, y: 0)
+        rock.position = CGPoint(x: self.frame.midX + self.frame.width, y: self.frame.midY - textRock.size().height*2.5)
         
         // Le damos cuerpo físico al tubo
         rock.physicsBody = SKPhysicsBody(rectangleOf: textRock.size())
@@ -139,7 +134,7 @@ class GameScene: SKScene {
         // Hace contacto con
         rock.physicsBody!.contactTestBitMask = tipoNodo.goku.rawValue
         
-        rock.run(moverBorrarTubos)
+        rock.run(moverBorrarRock)
         
         self.addChild(rock)
     }
@@ -166,6 +161,7 @@ class GameScene: SKScene {
     }
     
     override func didMove(to view: SKView) {
+        timer = Timer.scheduledTimer(timeInterval: 4, target: self, selector: #selector(self.objects), userInfo: nil, repeats: true)
         
         backgroundAnimated()
         floor()
