@@ -43,10 +43,21 @@ class GameScene: SKScene {
     let textGoku7 = SKTexture(imageNamed: "correr7.png")
     let textGoku8 = SKTexture(imageNamed: "correr8.png")
     
+    var timerPuntuacion = Timer()
+    
     enum tipoNodo: UInt32 {
         case goku = 1
         case suelo = 3
         case object = 2
+    }
+    
+    func ponerPuntuacion() {
+        labelPuntuacion.fontName = "Arial"
+        labelPuntuacion.fontSize = 40
+        labelPuntuacion.text = "0"
+        labelPuntuacion.position = CGPoint(x: self.frame.minX/1.1, y: self.frame.maxY/1.5)
+        labelPuntuacion.zPosition = 2
+        self.addChild(labelPuntuacion)
     }
     
     func backgroundAnimated(){
@@ -167,6 +178,14 @@ class GameScene: SKScene {
         floor()
         gokuRun()
         objects()
+        ponerPuntuacion()
+        
+        timerPuntuacion = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(puntuasao(data: )), userInfo: nil, repeats: true)
+    }
+    
+    @objc func puntuasao(data:Timer){
+        puntuacion += 1
+        labelPuntuacion.text = String(puntuacion)
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -177,9 +196,18 @@ class GameScene: SKScene {
             // Le damos una velocidad a la mosquita para que la velocidad al caer sea constante
             goku.physicsBody!.velocity = CGVector(dx: 0, dy: 0)
             
+            
+            print("ANTES---suelo Y: \(suelo.position.y) goku Y: \(goku.position.y)")
+            print("ANTES---resta \(suelo.position.y-goku.position.y)")
+            
             // Le aplicamos un impulso a la mosquita para que suba cada vez que pulsemos la pantalla
             // Y así poder evitar que se caiga para abajo
-            goku.physicsBody!.applyImpulse(CGVector(dx: 0, dy: 30))
+            //if (suelo.position.y-goku.position.y) > -19.06{
+                goku.physicsBody!.applyImpulse(CGVector(dx: 0, dy: 30))
+                print("resta \(suelo.position.y-goku.position.y)")
+            //}
+            
+            print("suelo Y: \(suelo.position.y) goku Y: \(goku.position.y)")
         } else {
             // si toca la pantalla cuando el juego ha acabado, lo reiniciamos para volver a jugar
             gameOver = false
