@@ -9,7 +9,7 @@
 import SpriteKit
 import GameplayKit
 
-class GameScene: SKScene {
+class GameScene: SKScene, SKPhysicsContactDelegate {
     
     private var label : SKLabelNode?
     private var spinnyNode : SKShapeNode?
@@ -121,28 +121,20 @@ class GameScene: SKScene {
         // Acción para mover los tubos
         let moverRock = SKAction.move(by: CGVector(dx: -3 * self.frame.width, dy: 0), duration: TimeInterval(self.frame.width / 80))
         
-        // Acción para borrar los tubos cuando desaparecen de la pantalla para no tener infinitos nodos en la aplicación
         let borrarRock = SKAction.removeFromParent()
         
-        
-        // Acción que enlaza las dos acciones (la que pone tubos y la que los borra)
         let moverBorrarRock = SKAction.sequence([moverRock, borrarRock])
 
         rock = SKSpriteNode(texture: textRock)
-        rock.position = CGPoint(x: self.frame.midX + self.frame.width, y: self.frame.midY - textRock.size().height*2.5)
+        rock.position = CGPoint(x: self.frame.midX + self.frame.width, y: self.frame.midY - textRock.size().height*3.1)
         
-        // Le damos cuerpo físico al tubo
         rock.physicsBody = SKPhysicsBody(rectangleOf: textRock.size())
-        // Para que no caiga
         rock.physicsBody!.isDynamic = false
         
-        // Categoría de collision
         rock.physicsBody!.categoryBitMask = tipoNodo.object.rawValue
         
-        // con quien colisiona
         rock.physicsBody!.collisionBitMask = tipoNodo.goku.rawValue
         
-        // Hace contacto con
         rock.physicsBody!.contactTestBitMask = tipoNodo.goku.rawValue
         
         rock.run(moverBorrarRock)
@@ -173,6 +165,8 @@ class GameScene: SKScene {
     
     override func didMove(to view: SKView) {
         timer = Timer.scheduledTimer(timeInterval: 4, target: self, selector: #selector(self.objects), userInfo: nil, repeats: true)
+        
+        self.physicsWorld.contactDelegate = self
         
         backgroundAnimated()
         floor()
@@ -219,20 +213,45 @@ class GameScene: SKScene {
         }
         
     }
+    
+    func didBegin(_ contact: SKPhysicsContact) {
+        
+        let cuerpoA = contact.bodyA
+        let cuerpoB = contact.bodyB
+        
+        print(cuerpoA.categoryBitMask)
+        print(cuerpoB.categoryBitMask)
+        
+        print("TOCA LA PIEDRA")
+        
+        if (cuerpoA.categoryBitMask == tipoNodo.goku.rawValue &&
+            cuerpoB.categoryBitMask == tipoNodo.object.rawValue)
+            ||
+            (cuerpoA.categoryBitMask == tipoNodo.object.rawValue &&
+                cuerpoB.categoryBitMask == tipoNodo.goku.rawValue) {
+            
+            
+            print("TOCA LA PIEDRA")
+            
+            puntuacion += 1
+            labelPuntuacion.text = String("CcCcCc  Game Over")
+            
+            
+        } else {
+            // si no pasa por el hueco es porque ha tocado el suelo o una tubería
+            // deberemos acabar el juego
+            gameOver = true
+            // Frenamos todo
+            self.speed = 0
+            // Paramos el timer
+            timerPuntuacion.invalidate()
+            labelPuntuacion.text = "Game Over"
+            labelPuntuacion.text = String("CcCcCc  Game Over")
+        }
+        
+    }
 
     func reiniciar() {
-        
-    }
-    
-    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        
-    }
-    
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        
-    }
-    
-    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         
     }
     
