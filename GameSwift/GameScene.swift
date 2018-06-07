@@ -22,7 +22,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var rock = SKSpriteNode()
     var textRock = SKTexture(imageNamed: "rock.png")
     
+    var coin = SKSpriteNode()
+    var textCoin = SKTexture(imageNamed: "coin.png")
+    
     var timer = Timer()
+    var timerCoin = Timer()
     
     var cantidadAleatoria = CGFloat()
     var compensacionRock = CGFloat()
@@ -47,8 +51,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     enum tipoNodo: UInt32 {
         case goku = 1
-        case suelo = 3
         case object = 2
+        case suelo = 3
+        case coin = 4
     }
     
     func ponerPuntuacion() {
@@ -142,6 +147,31 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.addChild(rock)
     }
     
+    @objc func coinSet() {
+        // Acción para mover los tubos
+        let moverCoin = SKAction.move(by: CGVector(dx: -3 * self.frame.width, dy: 0), duration: TimeInterval(self.frame.width / 60))
+        
+        let borrarCoin = SKAction.removeFromParent()
+        
+        let moverBorrarCoin = SKAction.sequence([moverCoin, borrarCoin])
+        
+        coin = SKSpriteNode(texture: textCoin)
+        coin.position = CGPoint(x: self.frame.midX + self.frame.width, y: self.frame.midY - textRock.size().height*3.1)
+        
+        coin.physicsBody = SKPhysicsBody(rectangleOf: textCoin.size())
+        coin.physicsBody!.isDynamic = false
+        
+        coin.physicsBody!.categoryBitMask = tipoNodo.coin.rawValue
+        
+        coin.physicsBody!.collisionBitMask = tipoNodo.goku.rawValue
+        
+        coin.physicsBody!.contactTestBitMask = tipoNodo.goku.rawValue
+        
+        coin.run(moverBorrarCoin)
+        
+        self.addChild(coin)
+    }
+    
     func gokuRun() {
         let animacion = SKAction.animate(with: [textGoku1,textGoku2,textGoku3, textGoku4, textGoku5, textGoku6, textGoku7, textGoku8], timePerFrame: 0.2)
         
@@ -156,6 +186,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         goku.physicsBody!.categoryBitMask = tipoNodo.goku.rawValue
         goku.physicsBody!.categoryBitMask = tipoNodo.suelo.rawValue
         
+        goku.physicsBody!.collisionBitMask = tipoNodo.object.rawValue
+        
         goku.run(animacionRepetida)
 
         self.addChild(goku)
@@ -164,17 +196,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     override func didMove(to view: SKView) {
-        timer = Timer.scheduledTimer(timeInterval: 4, target: self, selector: #selector(self.objects), userInfo: nil, repeats: true)
         
         self.physicsWorld.contactDelegate = self
-        
-        backgroundAnimated()
-        floor()
-        gokuRun()
-        objects()
-        ponerPuntuacion()
-        
-        timerPuntuacion = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(puntuasao(data: )), userInfo: nil, repeats: true)
+        reiniciar()
     }
     
     @objc func puntuasao(data:Timer){
@@ -187,7 +211,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         if gameOver == false {
             
-            // Le damos una velocidad a la mosquita para que la velocidad al caer sea constante
             goku.physicsBody!.velocity = CGVector(dx: 0, dy: 0)
             
             
@@ -219,40 +242,65 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let cuerpoA = contact.bodyA
         let cuerpoB = contact.bodyB
         
-        print(cuerpoA.categoryBitMask)
-        print(cuerpoB.categoryBitMask)
+        print("cuerpoA: \(cuerpoA.categoryBitMask)")
+        print("cuerpoB: \(cuerpoB.categoryBitMask)")
         
-        print("TOCA LA PIEDRA")
         
-        if (cuerpoA.categoryBitMask == tipoNodo.goku.rawValue &&
+        print("goku: \(tipoNodo.goku.rawValue)")
+        print("object: \(tipoNodo.object.rawValue)")
+        
+        print("TOCA ALGO")
+        
+        if (cuerpoA.categoryBitMask == tipoNodo.suelo.rawValue &&
             cuerpoB.categoryBitMask == tipoNodo.object.rawValue)
             ||
             (cuerpoA.categoryBitMask == tipoNodo.object.rawValue &&
-                cuerpoB.categoryBitMask == tipoNodo.goku.rawValue) {
-            
+                cuerpoB.categoryBitMask == tipoNodo.suelo.rawValue) {
             
             print("TOCA LA PIEDRA")
             
             puntuacion += 1
-            labelPuntuacion.text = String("CcCcCc  Game Over")
             
-            
-        } else {
-            // si no pasa por el hueco es porque ha tocado el suelo o una tubería
-            // deberemos acabar el juego
             gameOver = true
-            // Frenamos todo
             self.speed = 0
-            // Paramos el timer
             timerPuntuacion.invalidate()
-            labelPuntuacion.text = "Game Over"
+            timer.invalidate()
+            timerCoin.invalidate()
             labelPuntuacion.text = String("CcCcCc  Game Over")
+            
+            
+        } else if (cuerpoA.categoryBitMask == tipoNodo.suelo.rawValue &&
+            cuerpoB.categoryBitMask == tipoNodo.coin.rawValue)
+            ||
+            (cuerpoA.categoryBitMask == tipoNodo.coin.rawValue &&
+                cuerpoB.categoryBitMask == tipoNodo.suelo.rawValue) {
+            
+            puntuacion += 100
+            print("TOCA LA moneda")
+            
+            
+            if cuerpoB.categoryBitMask == tipoNodo.coin.rawValue {
+                cuerpoB.node?.removeFromParent()
+            }else {
+                cuerpoA.node?.removeFromParent()
+            }
         }
         
     }
 
     func reiniciar() {
         
+        timer = Timer.scheduledTimer(timeInterval: 4, target: self, selector: #selector(self.objects), userInfo: nil, repeats: true)
+        
+        timerCoin = Timer.scheduledTimer(timeInterval: 4, target: self, selector: #selector(self.coinSet), userInfo: nil, repeats: true)
+        
+        backgroundAnimated()
+        floor()
+        gokuRun()
+        objects()
+        ponerPuntuacion()
+        
+        timerPuntuacion = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(puntuasao(data: )), userInfo: nil, repeats: true)
     }
     
     
